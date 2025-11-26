@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme }) => {
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
@@ -16,7 +18,7 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
             let response;
             if (type === 'youtube') {
                 // YouTube uses /info then /download
-                const infoRes = await fetch(`/info?url=${encodeURIComponent(url)}`);
+                const infoRes = await fetch(`${API_BASE}/api/info?url=${encodeURIComponent(url)}`);
                 if (!infoRes.ok) throw new Error('Failed to fetch video info');
                 const infoData = await infoRes.json();
                 setResult({
@@ -28,7 +30,8 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
                 });
             } else {
                 // Instagram/Pinterest/Facebook
-                response = await fetch(apiEndpoint, {
+                // apiEndpoint is passed as /api/instagram etc from App.jsx
+                response = await fetch(`${API_BASE}${apiEndpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url }),
@@ -52,7 +55,7 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
     const downloadYoutube = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/download', {
+            const res = await fetch(`${API_BASE}/api/download`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url, link: true })
@@ -67,8 +70,9 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
             if (data.download_link) {
                 // Create a temporary link and click it to trigger download
                 const a = document.createElement('a');
-                a.href = data.download_link;
-                a.download = ''; // Let browser decide name
+                a.href = data.download_link; // This usually comes back absolute if _external=True in backend, but let's verify
+                // In main.py: url_for(..., _external=True) returns absolute URL. So this is fine.
+                a.download = '';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -140,8 +144,8 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
                                 ) : (
                                     <a
                                         href={result.download_url && result.download_url.startsWith('/')
-                                            ? result.download_url
-                                            : `/proxy_download?url=${encodeURIComponent(result.download_url || result.url)}&filename=${encodeURIComponent((result.title || 'video').replace(/[^a-z0-9]/gi, '_') + '.mp4')}`
+                                            ? `${API_BASE}${result.download_url}`
+                                            : `${API_BASE}/api/proxy_download?url=${encodeURIComponent(result.download_url || result.url)}&filename=${encodeURIComponent((result.title || 'video').replace(/[^a-z0-9]/gi, '_') + '.mp4')}`
                                         }
                                         download
                                         target="_blank"
