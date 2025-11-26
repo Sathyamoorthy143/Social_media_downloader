@@ -53,7 +53,7 @@ async def handle_ping():
 async def docs():
     return "Social Media Downloader API", 200
 
-@app.route('/search', methods=['GET'])
+@app.route('/api/search', methods=['GET'])
 async def search_video():
     query = request.args.get('q')
     amount = request.args.get('amount')
@@ -70,7 +70,7 @@ async def search_video():
         logger.error(f"Search error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/info', methods=['GET'])
+@app.route('/api/info', methods=['GET'])
 async def video_info():
     data = request.args or await request.get_json()
     if not data:
@@ -100,7 +100,7 @@ async def video_info():
         logger.error(f"An error occored fetching video info:{repr(e)}")
         return jsonify({"error": f"Server error : {repr(e)}"}), 500
 
-@app.route('/download', methods=['POST'])
+@app.route('/api/download', methods=['POST'])
 async def download_highest_avaliable_resolution():
     data = await request.get_json()
     url = data.get('url')
@@ -171,7 +171,7 @@ async def download_highest_avaliable_resolution():
         logger.error(f"An error occored downloading content:{repr(e)}")
         return jsonify({"error": f"Server error : {repr(e)}"}), 500
   
-@app.route('/download_audio', methods=['POST'])
+@app.route('/api/download_audio', methods=['POST'])
 async def download_highest_quality_audio():
     data = await request.get_json()
     url = data.get('url')
@@ -198,7 +198,7 @@ async def download_highest_quality_audio():
         logger.error(f"An error occored downloading content:{repr(e)}")
         return jsonify({"error": f"Server error : {repr(e)}"}), 500
 
-@app.route('/temp_file/<filename>', methods=['GET'])
+@app.route('/api/temp_file/<filename>', methods=['GET'])
 async def get_file(filename):
     file_path = os.path.join(TEMP_DIR, filename)
     if os.path.exists(file_path):
@@ -271,7 +271,7 @@ async def facebook_download():
         logger.error(f"Facebook error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/proxy_download', methods=['GET'])
+@app.route('/api/proxy_download', methods=['GET'])
 async def proxy_download():
     url = request.args.get('url')
     filename = request.args.get('filename', 'video.mp4')
