@@ -33,4 +33,5 @@ wsproto==1.2.0
 
 youtube-urls-validator==0.0.1
 yt-dlp
+languagecodes
 playwright
