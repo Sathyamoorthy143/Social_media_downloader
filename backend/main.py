@@ -204,7 +204,14 @@ async def download_highest_quality_audio():
 async def get_file(filename):
     file_path = os.path.join(TEMP_DIR, filename)
     if os.path.exists(file_path):
-        return await send_file(file_path, as_attachment=True)
+        # Determine mimetype based on extension
+        mimetype = 'video/mp4'
+        if filename.endswith('.mp3'):
+            mimetype = 'audio/mpeg'
+        elif filename.endswith('.webm'):
+            mimetype = 'video/webm'
+            
+        return await send_file(file_path, as_attachment=True, attachment_filename=filename, mimetype=mimetype)
     else:
         logger.warning(f"Requested file not found: {filename}")
         return jsonify({"error": "File not found"}), 404
