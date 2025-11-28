@@ -35,3 +35,4 @@ youtube-urls-validator==0.0.1
 yt-dlp
 languagecodes
 playwright
+instaloader
