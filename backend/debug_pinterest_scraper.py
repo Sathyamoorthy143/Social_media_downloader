@@ -29,48 +29,46 @@ def test_pinterest_scraper(url):
             html = response.text
             print(f"HTML length: {len(html)}")
             
-            # Check for __PWS_DATA__
+            # Check for __PWS_INITIAL_PROPS__ (seems more promising now)
+            match_props = re.search(r'<script id="__PWS_INITIAL_PROPS__" type="application/json">(.+?)</script>', html)
+            if match_props:
+                 print("Found __PWS_INITIAL_PROPS__ content!")
+                 try:
+                     props_data = json.loads(match_props.group(1))
+                     print("Parsed __PWS_INITIAL_PROPS__")
+                     print("Keys:", props_data.keys())
+                     
+                     # Check for initialReduxState here
+                     if 'initialReduxState' in props_data:
+                         print("Found initialReduxState in __PWS_INITIAL_PROPS__")
+                         irs = props_data['initialReduxState']
+                         print("initialReduxState keys:", irs.keys())
+                         
+                         # Check pins
+                         pins = irs.get('pins', {})
+                         if pins:
+                             print(f"Found {len(pins)} pins in initialReduxState")
+                             for pid, pdata in pins.items():
+                                 if pdata.get('videos'):
+                                     print(f"Pin {pid} has videos!")
+                                     print(pdata['videos'])
+                                     return
+                         else:
+                             print("No pins in initialReduxState (inside props)")
+                 except Exception as e:
+                     print(f"Error parsing __PWS_INITIAL_PROPS__: {e}")
+
+            # Check for __PWS_DATA__ as fallback
             match = re.search(r'<script id="__PWS_DATA__" type="application/json">(.+?)</script>', html)
             if match:
                 print("Found __PWS_DATA__ script tag!")
                 try:
                     data = json.loads(match.group(1))
-                    print("JSON parsed successfully!")
-                    
-                    # Print keys one by one to avoid truncation
-                    print("--- Top Level Keys ---")
-                    for k in data.keys():
-                        print(f"- {k}")
-                    
-                    props = data.get('props', {})
-                    print("--- Props Keys ---")
-                    for k in props.keys():
-                        print(f"- {k}")
-                        
-                    initialReduxState = props.get('initialReduxState', {})
-                    print(f"initialReduxState type: {type(initialReduxState)}")
-                    if initialReduxState:
-                        print("--- initialReduxState Keys ---")
-                        for k in initialReduxState.keys():
-                            print(f"- {k}")
-                    else:
-                        print("initialReduxState is empty")
+                    print(f"Site: {data.get('site')}")
+                    print(f"Context: {data.get('context')}")
+                except:
+                    pass
 
-                    # Check for relayResponse
-                    if 'relayResponse' in data:
-                        print("Found relayResponse!")
-                        
-                    # Check page title from HTML (simple regex)
-                    title_match = re.search(r'<title>(.+?)</title>', html)
-                    if title_match:
-                        print(f"Page Title: {title_match.group(1)}")
-                            
-                except json.JSONDecodeError as e:
-                    print(f"JSON Decode Error: {e}")
-            else:
-                print("No __PWS_DATA__ script tag found in HTML")
-                # Print first 500 chars of HTML to see what we got
-                print("HTML Start:", html[:500])
         else:
             print("Failed to fetch page")
             

@@ -1,0 +1,14 @@
+--- Top Level Keys ---
+- adsAPIDomain
+- appVersion
+- context
+- enableAdaptiveStatsLoggingFlush
+- experiments
+- initialHandlerId
+- isPrefetch
+- renderMode
+- site
+
+--- Props Keys ---
+
+initialReduxState is empty

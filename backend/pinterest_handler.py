@@ -24,13 +24,19 @@ def download_pinterest(url):
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             html = response.text
-            match = re.search(r'<script id="__PWS_DATA__" type="application/json">(.+?)</script>', html)
-            if match:
-                data = json.loads(match.group(1))
-                # Traverse JSON to find video
-                # Path: props -> initialReduxState -> pins -> [id] -> videos -> video_list -> V_720P -> url
+        if response.status_code == 200:
+            html = response.text
+            
+            # Helper to extract video from data
+            def extract_video_from_data(data):
                 try:
-                    pins = data.get('props', {}).get('initialReduxState', {}).get('pins', {})
+                    # Check initialReduxState in props or root
+                    if 'initialReduxState' in data:
+                         irs = data['initialReduxState']
+                    else:
+                         irs = data.get('props', {}).get('initialReduxState', {})
+                         
+                    pins = irs.get('pins', {})
                     for pin_id, pin_data in pins.items():
                         if pin_data.get('videos'):
                             video_list = pin_data['videos'].get('video_list', {})
@@ -46,28 +52,52 @@ def download_pinterest(url):
                                 video_url = list(video_list.values())[0].get('url')
 
                             if video_url:
-                                # Download the video file to TEMP_DIR
-                                filename = f"{pin_id}.mp4"
-                                file_path = os.path.join(TEMP_DIR, filename)
-                                
-                                # Stream download
-                                with requests.get(video_url, stream=True) as r:
-                                    r.raise_for_status()
-                                    with open(file_path, 'wb') as f:
-                                        for chunk in r.iter_content(chunk_size=8192):
-                                            f.write(chunk)
-                                            
-                                return {
-                                    "title": pin_data.get('title') or pin_data.get('grid_title') or "Pinterest Video",
-                                    "url": url,
-                                    "download_url": f"/api/temp_file/{filename}",
-                                    "thumbnail": pin_data.get('images', {}).get('orig', {}).get('url', ''),
-                                    "duration": "0:00" # Duration might be in metadata but hard to find
-                                }
-                except Exception as e:
-                    logger.error(f"JSON parsing failed: {e}")
-                    # Fallback to yt-dlp if parsing fails
+                                return video_url, pin_data
+                    return None, None
+                except:
+                    return None, None
+
+            # Try __PWS_INITIAL_PROPS__ first (seems more reliable for some links)
+            match_props = re.search(r'<script id="__PWS_INITIAL_PROPS__" type="application/json">(.+?)</script>', html)
+            video_url = None
+            pin_data = None
+            
+            if match_props:
+                try:
+                    data = json.loads(match_props.group(1))
+                    video_url, pin_data = extract_video_from_data(data)
+                except:
                     pass
+
+            # Try __PWS_DATA__ if not found
+            if not video_url:
+                match = re.search(r'<script id="__PWS_DATA__" type="application/json">(.+?)</script>', html)
+                if match:
+                    try:
+                        data = json.loads(match.group(1))
+                        video_url, pin_data = extract_video_from_data(data)
+                    except:
+                        pass
+
+            if video_url:
+                # Download the video file to TEMP_DIR
+                filename = f"{pin_data.get('id', 'pinterest_video')}.mp4"
+                file_path = os.path.join(TEMP_DIR, filename)
+                
+                # Stream download
+                with requests.get(video_url, stream=True) as r:
+                    r.raise_for_status()
+                    with open(file_path, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                            
+                return {
+                    "title": pin_data.get('title') or pin_data.get('grid_title') or "Pinterest Video",
+                    "url": url,
+                    "download_url": f"/api/temp_file/{filename}",
+                    "thumbnail": pin_data.get('images', {}).get('orig', {}).get('url', ''),
+                    "duration": "0:00"
+                }
 
         # Fallback to YoutubeVideo class (yt-dlp)
         from scraper.Youtube import YoutubeVideo
