@@ -212,8 +212,15 @@ async def get_file(filename):
             mimetype = 'video/webm'
             
         response = await send_file(file_path, mimetype=mimetype, as_attachment=True)
+        
+        # Sanitize filename for header: remove non-alphanumeric (except ._-) and ensure ASCII
+        safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+        # Ensure it ends with the correct extension
+        if mimetype == 'video/mp4' and not safe_filename.endswith('.mp4'):
+             safe_filename += '.mp4'
+             
         # Manually set Content-Disposition to ensure filename is respected
-        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response.headers["Content-Disposition"] = f'attachment; filename="{safe_filename}"'
         return response
     else:
         logger.warning(f"Requested file not found: {filename}")
