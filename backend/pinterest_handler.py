@@ -7,6 +7,13 @@ logger = logging.getLogger(__name__)
 
 def download_pinterest(url):
     try:
+        # Normalize URL to www.pinterest.com
+        if 'pinterest.com' in url:
+            url = url.replace('in.pinterest.com', 'www.pinterest.com')
+            # Handle other country subdomains if needed, or just regex replace
+            import re
+            url = re.sub(r'https?://[a-z]{2}\.pinterest\.com', 'https://www.pinterest.com', url)
+
         # Configure yt-dlp options
         ydl_opts = {
             'quiet': True,

@@ -86,6 +86,14 @@ async def video_info():
     #   return jsonify({"error": "Invalid YouTube URL."}), 400
     
     try:
+      if 'instagram.com' in url:
+          from instagram_handler import get_instagram_info
+          video_info = await asyncio.to_thread(get_instagram_info, url)
+          if video_info:
+              return jsonify(video_info), 200
+          else:
+              return jsonify({"error": "Failed to fetch Instagram info"}), 500
+
       # Use the get_video method (aliased as search in Youtube class for compatibility if needed, but better to use get_video)
       # Wait, main.py originally called youtube.search(url) which returned a YoutubeVideo object
       # My new Youtube.py has search(url) doing exactly that.

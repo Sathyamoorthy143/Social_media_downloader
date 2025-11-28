@@ -54,3 +54,22 @@ def download_instagram(url):
     except Exception as e:
         logger.error(f"Error downloading instagram: {e}")
         return {"error": str(e)}
+
+def get_instagram_info(url):
+    try:
+        import instaloader
+        L = instaloader.Instaloader()
+        shortcode = url.split("/p/")[1].split("/")[0] if "/p/" in url else url.split("/reel/")[1].split("/")[0]
+        post = instaloader.Post.from_shortcode(L.context, shortcode)
+        
+        return {
+            "title": post.caption or "Instagram Video",
+            "thumbnail_url": post.url, # This is the image URL
+            "length": "0:00", # Instaloader doesn't give duration easily without downloading
+            "view_url": url,
+            "author": post.owner_username,
+            "publish_date": post.date_local.strftime('%Y-%m-%d')
+        }
+    except Exception as e:
+        logger.error(f"Error getting instagram info: {e}")
+        return None
