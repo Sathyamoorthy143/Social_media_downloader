@@ -13,7 +13,7 @@ def download_instagram(url):
         if not os.path.exists(cookies_path):
              cookies_path = None
 
-        yt_video = YoutubeVideo(url, TEMP_DIR, proxies=None, cookies_file=cookies_path)
+        yt_video = YoutubeVideo(url, TEMP_DIR, proxies=None, cookies_file=cookies_path, use_browser_cookies=True)
         info = yt_video.dict()
         filename = yt_video.download()
         

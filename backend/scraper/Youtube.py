@@ -44,7 +44,7 @@ class Youtube:
         }
 
 class YoutubeVideo:
-    def __init__(self, url, download_folder, proxies=None, cookies_file=None):
+    def __init__(self, url, download_folder, proxies=None, cookies_file=None, use_browser_cookies=False):
         self.url = url
         self.download_folder = download_folder
         self.proxies = proxies
@@ -56,8 +56,10 @@ class YoutubeVideo:
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
             },
-            'cookiesfrombrowser': ('chrome', 'edge', 'firefox'), # Try all common browsers
         }
+        if use_browser_cookies:
+             self.ydl_opts['cookiesfrombrowser'] = ('chrome', 'edge', 'firefox') # Try all common browsers
+
         if cookies_file and os.path.exists(cookies_file):
             self.ydl_opts['cookiefile'] = cookies_file
         # Add proxy if needed
