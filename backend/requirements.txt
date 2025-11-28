@@ -36,3 +36,5 @@ yt-dlp
 languagecodes
 playwright
 instaloader
+quart-cors
+beautifulsoup4

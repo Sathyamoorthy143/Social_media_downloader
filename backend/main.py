@@ -1,4 +1,5 @@
 from quart import Quart, request, jsonify, url_for, send_file
+from quart_cors import cors
 from scraper.Youtube import Youtube
 from apscheduler.schedulers.background import BackgroundScheduler
 from editor import combine_video_and_audio, add_subtitles
@@ -30,6 +31,8 @@ setup_logging()
 logger= logging.getLogger(__name__)
 
 app = Quart(__name__)
+# Enable CORS for production deployment
+app = cors(app, allow_origin="*")  # In production, replace * with your Vercel domain
 youtube = Youtube(download_folder=TEMP_DIR, proxies=get_proxies())
 
 if AUTH:
@@ -379,4 +382,7 @@ if __name__ == '__main__':
       scheduler = BackgroundScheduler()
       scheduler.add_job(clear_temp_directory, "interval", days=1)
       scheduler.start()
-    app.run(debug=DEBUG)
+    
+    # Get port from environment variable (for production deployment)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=DEBUG, host="0.0.0.0", port=port)
