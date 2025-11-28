@@ -150,11 +150,13 @@ async def download_highest_avaliable_resolution():
       # Let's try to use yt.download directly here since I control Youtube.py.
       
       video_file = await asyncio.to_thread(yt.download)
+      logger.info(f"Downloaded video file: {video_file}")
       
       if video_file:
           threading.Thread(target=delete_file_after_delay, args=(video_file, EXPIRATION_DELAY)).start()
           if data.get("link"):
             download_link =  url_for('get_file', filename=os.path.basename(video_file), _external=True)
+            logger.info(f"Generated download link: {download_link}")
             return jsonify({
                 "download_link": download_link,
                 "video_info": {
