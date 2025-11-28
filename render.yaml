@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: social-media-downloader-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "cd backend && pip install -r requirements.txt && playwright install-deps && playwright install chromium"
+    startCommand: "cd backend && python main.py"
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: PORT
+        value: 10000
+      - key: TEMP_DIR
+        value: /tmp/temp_files
+      - key: MAX_SIZE
+        value: 2147483648
+      - key: EXPIRATION
+        value: 1800
