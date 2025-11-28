@@ -1,38 +1,4 @@
 import logging
-import asyncio
-import os
-from scraper.Youtube import YoutubeVideo
-from settings import TEMP_DIR
-
-logger = logging.getLogger(__name__)
-
-def download_instagram(url):
-    try:
-        # Use YoutubeVideo class which wraps yt-dlp
-        # We don't need proxies for now as per current setup, or we can pass None
-        # The YoutubeVideo class handles the download logic
-        
-        # Check for cookies.txt
-        cookies_path = os.path.join(os.getcwd(), 'cookies.txt')
-        if not os.path.exists(cookies_path):
-             cookies_path = None
-        
-        # Create YoutubeVideo instance
-        yt_video = YoutubeVideo(url, TEMP_DIR, proxies=None, cookies_file=cookies_path)
-        
-        # Get info first to get title and thumbnail
-        info = yt_video.dict()
-        
-        # Download the video
-        # We use asyncio.run if we are in a sync context, but this function is called via asyncio.to_thread in main.py
-        # However, YoutubeVideo.download is synchronous (it uses yt-dlp directly without async)
-        # Wait, let's check Youtube.py again. 
-        # YoutubeVideo.download is a normal method, not async.
-        # So we can call it directly.
-        
-        filename = yt_video.download()
-        
-import logging
 import os
 from scraper.Youtube import YoutubeVideo
 from settings import TEMP_DIR
@@ -42,7 +8,12 @@ logger = logging.getLogger(__name__)
 def download_instagram(url):
     # Try yt-dlp first (with cookies and mobile UA)
     try:
-        yt_video = YoutubeVideo(url, TEMP_DIR)
+        # Check for cookies.txt
+        cookies_path = os.path.join(os.getcwd(), 'cookies.txt')
+        if not os.path.exists(cookies_path):
+             cookies_path = None
+
+        yt_video = YoutubeVideo(url, TEMP_DIR, proxies=None, cookies_file=cookies_path)
         info = yt_video.dict()
         filename = yt_video.download()
         
@@ -56,8 +27,7 @@ def download_instagram(url):
             }
     except Exception as e:
         logger.warning(f"yt-dlp failed for Instagram: {e}")
-        # Fallback to Instaloader for INFO only (downloading with instaloader is harder to stream)
-        # But if we can get the video URL, we can download it like Pinterest
+        # Fallback to Instaloader
         pass
 
     # Fallback: Instaloader
