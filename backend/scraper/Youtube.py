@@ -96,18 +96,9 @@ class YoutubeVideo:
                 'preferredquality': '192',
             }]
         else:
-            opts['format'] = 'bestvideo+bestaudio/best'
-            
-            # Check if ffmpeg is available
-            import shutil
-            if shutil.which('ffmpeg'):
-                opts['merge_output_format'] = 'mp4'
-            else:
-                # Fallback if ffmpeg is missing (e.g. on Vercel)
-                # We can't merge, so we might get webm or separate files.
-                # Ideally we'd request a format that is already combined (e.g. 'best'), but quality might be lower.
-                # For now, let's just skip the merge instruction so it doesn't crash.
-                pass
+            # Force MP4 format
+            opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+            opts['merge_output_format'] = 'mp4'
         
         with YoutubeDL(opts) as ydl:
             info = ydl.extract_info(self.url, download=True)
