@@ -125,16 +125,19 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
                                     </button>
                                 ) : (
                                     <a
-                                        href={result.download_url && result.download_url.startsWith('/')
-                                            ? `${API_BASE}${result.download_url}`
-                                            : `${API_BASE}/api/proxy_download?url=${encodeURIComponent(result.download_url || result.url)}&filename=${encodeURIComponent((result.title || 'video').replace(/[^a-z0-9]/gi, '_') + '.mp4')}`
+                                        href={
+                                            result.is_external
+                                                ? result.download_url  // Use external link directly (SavePinMedia)
+                                                : result.download_url && result.download_url.startsWith('/')
+                                                    ? `${API_BASE}${result.download_url}`
+                                                    : `${API_BASE}/api/proxy_download?url=${encodeURIComponent(result.download_url || result.url)}&filename=${encodeURIComponent((result.title || 'video').replace(/[^a-z0-9]/gi, '_') + '.mp4')}`
                                         }
                                         download
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className={`text-white font-semibold py-2 px-6 rounded-lg transition-all duration-300 hover:shadow-lg inline-block text-center ${theme?.button || 'btn-primary'}`}
                                     >
-                                        Download Video
+                                        {result.is_external ? 'Download via SavePinMedia' : 'Download Video'}
                                     </a>
                                 )}
                             </div>

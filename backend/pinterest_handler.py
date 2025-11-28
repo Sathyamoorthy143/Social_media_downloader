@@ -7,122 +7,70 @@ logger = logging.getLogger(__name__)
 
 def download_pinterest(url):
     try:
-        # Normalize URL
+        # Primary method: Use SavePinMedia API
+        # SavePinMedia handles Pinterest downloads more reliably
+        logger.info(f"Using SavePinMedia for Pinterest URL: {url}")
+        
+        # Normalize the Pinterest URL
         if 'pinterest.com' in url:
             url = url.replace('in.pinterest.com', 'www.pinterest.com')
             import re
             url = re.sub(r'https?://[a-z]{2}\.pinterest\.com', 'https://www.pinterest.com', url)
-
-        # Try custom JSON scraping first
-        import requests
-        import json
         
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+        # For pin.it short URLs, we need to expand them first
+        if 'pin.it' in url:
+            try:
+                import requests
+                response = requests.head(url, allow_redirects=True, timeout=5)
+                url = response.url
+                logger.info(f"Expanded short URL to: {url}")
+            except Exception as e:
+                logger.warning(f"Failed to expand short URL: {e}")
         
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            html = response.text
-        if response.status_code == 200:
-            html = response.text
-            
-            # Helper to extract video from data
-            def extract_video_from_data(data):
-                try:
-                    # Check initialReduxState in props or root
-                    if 'initialReduxState' in data:
-                         irs = data['initialReduxState']
-                    else:
-                         irs = data.get('props', {}).get('initialReduxState', {})
-                         
-                    pins = irs.get('pins', {})
-                    for pin_id, pin_data in pins.items():
-                        if pin_data.get('videos'):
-                            video_list = pin_data['videos'].get('video_list', {})
-                            # Try best quality
-                            video_url = None
-                            for quality in ['V_720P', 'V_HLSV3_MOBILE', 'V_HLSV4', 'V_EXP7']:
-                                if quality in video_list:
-                                    video_url = video_list[quality].get('url')
-                                    break
-                            
-                            if not video_url and video_list:
-                                # Get first available
-                                video_url = list(video_list.values())[0].get('url')
-
-                            if video_url:
-                                return video_url, pin_data
-                    return None, None
-                except:
-                    return None, None
-
-            # Try __PWS_INITIAL_PROPS__ first (seems more reliable for some links)
-            match_props = re.search(r'<script id="__PWS_INITIAL_PROPS__" type="application/json">(.+?)</script>', html)
-            video_url = None
-            pin_data = None
-            
-            if match_props:
-                try:
-                    data = json.loads(match_props.group(1))
-                    video_url, pin_data = extract_video_from_data(data)
-                except:
-                    pass
-
-            # Try __PWS_DATA__ if not found
-            if not video_url:
-                match = re.search(r'<script id="__PWS_DATA__" type="application/json">(.+?)</script>', html)
-                if match:
-                    try:
-                        data = json.loads(match.group(1))
-                        video_url, pin_data = extract_video_from_data(data)
-                    except:
-                        pass
-
-            if video_url:
-                # Download the video file to TEMP_DIR
-                filename = f"{pin_data.get('id', 'pinterest_video')}.mp4"
-                file_path = os.path.join(TEMP_DIR, filename)
-                
-                # Stream download
-                with requests.get(video_url, stream=True) as r:
-                    r.raise_for_status()
-                    with open(file_path, 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                            
-                return {
-                    "title": pin_data.get('title') or pin_data.get('grid_title') or "Pinterest Video",
-                    "url": url,
-                    "download_url": f"/api/temp_file/{filename}",
-                    "thumbnail": pin_data.get('images', {}).get('orig', {}).get('url', ''),
-                    "duration": "0:00"
-                }
-
-        # Fallback to YoutubeVideo class (yt-dlp)
-        from scraper.Youtube import YoutubeVideo
-        yt_video = YoutubeVideo(url, TEMP_DIR)
+        # Try to get basic info using requests
         try:
-            info = yt_video.dict()
-            filename = yt_video.download()
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
             
-            if filename and os.path.exists(filename):
+            if response.status_code == 200:
+                html = response.text
+                
+                # Try to extract title from meta tags
+                import re
+                title_match = re.search(r'<meta property="og:title" content="([^"]+)"', html)
+                title = title_match.group(1) if title_match else "Pinterest Content"
+                
+                # Try to extract thumbnail
+                thumb_match = re.search(r'<meta property="og:image" content="([^"]+)"', html)
+                thumbnail = thumb_match.group(1) if thumb_match else ""
+                
+                # Return info with a link to use SavePinMedia
+                # We'll use the proxy_download endpoint which can fetch from SavePinMedia
                 return {
-                    "title": info.get('title', 'Pinterest Video'),
+                    "title": title,
                     "url": url,
-                    "download_url": f"/api/temp_file/{os.path.basename(filename)}",
-                    "thumbnail": info.get('thumbnail_url', ''),
-                    "duration": info.get('length')
+                    "download_url": f"https://savepinmedia.com/download?url={url}",  # External redirect
+                    "thumbnail": thumbnail,
+                    "duration": "0:00",
+                    "is_external": True  # Flag to indicate this is an external download link
                 }
         except Exception as e:
-            logger.warning(f"yt-dlp failed: {e}")
-
-        # Final fallback: Playwright
-        logger.info("Attempting Playwright fallback...")
-        return download_with_playwright(url)
+            logger.warning(f"Failed to extract metadata: {e}")
+        
+        # Fallback: Return minimal info with SavePinMedia link
+        return {
+            "title": "Pinterest Content",
+            "url": url,
+            "download_url": f"https://savepinmedia.com/download?url={url}",
+            "thumbnail": "",
+            "duration": "0:00",
+            "is_external": True
+        }
 
     except Exception as e:
-        logger.error(f"Error downloading pinterest: {e}")
+        logger.error(f"Error in Pinterest handler: {e}")
         return {"error": str(e)}
 
 def download_with_playwright(url):
