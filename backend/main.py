@@ -211,7 +211,10 @@ async def get_file(filename):
         elif filename.endswith('.webm'):
             mimetype = 'video/webm'
             
-        return await send_file(file_path, as_attachment=True, attachment_filename=filename, mimetype=mimetype)
+        response = await send_file(file_path, mimetype=mimetype, as_attachment=True)
+        # Manually set Content-Disposition to ensure filename is respected
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
     else:
         logger.warning(f"Requested file not found: {filename}")
         return jsonify({"error": "File not found"}), 404
