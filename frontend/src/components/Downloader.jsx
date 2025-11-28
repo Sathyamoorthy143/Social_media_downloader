@@ -16,35 +16,17 @@ const Downloader = ({ title, apiEndpoint, placeholder, type, description, theme 
 
         try {
             let response;
-            if (type === 'youtube') {
-                // YouTube uses /info then /download
-                const infoRes = await fetch(`${API_BASE}/api/info?url=${encodeURIComponent(url)}`);
-                if (!infoRes.ok) throw new Error('Failed to fetch video info');
-                const infoData = await infoRes.json();
-                setResult({
-                    title: infoData.title,
-                    thumbnail: infoData.thumbnail_url,
-                    duration: infoData.length,
-                    isYoutube: true,
-                    originalUrl: url
-                });
-            } else {
-                // Instagram/Pinterest/Facebook
-                // apiEndpoint is passed as /api/instagram etc from App.jsx
-                response = await fetch(`${API_BASE}${apiEndpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url }),
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error || 'Download failed');
-                }
-
-                const data = await response.json();
-                setResult(data);
-            }
+            // Use /info for all types to get preview first
+            const infoRes = await fetch(`${API_BASE}/api/info?url=${encodeURIComponent(url)}`);
+            if (!infoRes.ok) throw new Error('Failed to fetch video info');
+            const infoData = await infoRes.json();
+            setResult({
+                title: infoData.title,
+                thumbnail: infoData.thumbnail_url,
+                duration: infoData.length,
+                isYoutube: true, // Treat all as "youtube-like" for download flow
+                originalUrl: url
+            });
         } catch (err) {
             setError(err.message);
         } finally {

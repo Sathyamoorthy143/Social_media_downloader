@@ -81,8 +81,9 @@ async def video_info():
     if not url:
       return jsonify({"error": "Missing 'url' parameter in the request body."}), 400
 
-    if not is_valid_youtube_url(url): 
-      return jsonify({"error": "Invalid YouTube URL."}), 400
+    # Relaxed validation to allow other platforms supported by yt-dlp
+    # if not is_valid_youtube_url(url): 
+    #   return jsonify({"error": "Invalid YouTube URL."}), 400
     
     try:
       # Use the get_video method (aliased as search in Youtube class for compatibility if needed, but better to use get_video)
@@ -118,8 +119,8 @@ async def download_highest_avaliable_resolution():
     if not url:
         return jsonify({"error": "Missing 'url' parameter in the request body."}), 400
 
-    if not is_valid_youtube_url(url):
-        return jsonify({"error": "Invalid YouTube URL."}), 400
+    # if not is_valid_youtube_url(url):
+    #     return jsonify({"error": "Invalid YouTube URL."}), 400
     
     if lang:
       if not is_valid_language(lang):

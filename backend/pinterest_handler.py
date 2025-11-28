@@ -32,7 +32,7 @@ def download_pinterest(url):
             return {
                 "title": info.get('title', 'Pinterest Video'),
                 "url": url,
-                "download_url": f"/temp_file/{filename}", # Local server path
+                "download_url": f"/api/temp_file/{filename}", # Local server path
                 "thumbnail": info.get('thumbnail', ''),
                 "duration": info.get('duration')
             }
