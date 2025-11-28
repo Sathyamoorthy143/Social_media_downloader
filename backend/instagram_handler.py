@@ -32,28 +32,66 @@ def download_instagram(url):
         
         filename = yt_video.download()
         
-        if filename and os.path.exists(filename):
-            # Calculate relative path or just return what main.py expects
-            # main.py expects:
-            # {
-            #     "title": "Instagram Video",
-            #     "url": url,
-            #     "download_url": f"/temp_file/{os.path.basename(filename)}",
-            #     "thumbnail": thumbnail
-            # }
-            
-            return {
-                "title": info.get('title') or "Instagram Video",
-                "url": url,
-                "download_url": f"/api/temp_file/{os.path.basename(filename)}", # main.py route is /api/temp_file/<filename>
-                "thumbnail": info.get('thumbnail_url') or ""
-            }
-        else:
-             return {"error": "Download failed or file not found."}
+import logging
+import os
+from scraper.Youtube import YoutubeVideo
+from settings import TEMP_DIR
 
+logger = logging.getLogger(__name__)
+
+def download_instagram(url):
+    # Try yt-dlp first (with cookies and mobile UA)
+    try:
+        yt_video = YoutubeVideo(url, TEMP_DIR)
+        info = yt_video.dict()
+        filename = yt_video.download()
+        
+        if filename and os.path.exists(filename):
+            return {
+                "title": info.get('title', 'Instagram Video'),
+                "url": url,
+                "download_url": f"/api/temp_file/{os.path.basename(filename)}",
+                "thumbnail": info.get('thumbnail_url', ''),
+                "duration": info.get('length')
+            }
     except Exception as e:
-        logger.error(f"Error downloading instagram: {e}")
-        return {"error": str(e)}
+        logger.warning(f"yt-dlp failed for Instagram: {e}")
+        # Fallback to Instaloader for INFO only (downloading with instaloader is harder to stream)
+        # But if we can get the video URL, we can download it like Pinterest
+        pass
+
+    # Fallback: Instaloader
+    try:
+        import instaloader
+        # Use mobile UA
+        ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'
+        L = instaloader.Instaloader(user_agent=ua)
+        shortcode = url.split("/p/")[1].split("/")[0] if "/p/" in url else url.split("/reel/")[1].split("/")[0]
+        post = instaloader.Post.from_shortcode(L.context, shortcode)
+        
+        video_url = post.video_url
+        if video_url:
+             # Download manually
+             import requests
+             filename = f"{shortcode}.mp4"
+             file_path = os.path.join(TEMP_DIR, filename)
+             
+             with requests.get(video_url, stream=True) as r:
+                 r.raise_for_status()
+                 with open(file_path, 'wb') as f:
+                     for chunk in r.iter_content(chunk_size=8192):
+                         f.write(chunk)
+
+             return {
+                "title": post.caption or "Instagram Video",
+                "url": url,
+                "download_url": f"/api/temp_file/{filename}",
+                "thumbnail": post.url,
+                "duration": "0:00"
+            }
+    except Exception as e:
+        logger.error(f"Instaloader failed: {e}")
+        return {"error": "Failed to download Instagram video"}
 
 def get_instagram_info(url):
     try:

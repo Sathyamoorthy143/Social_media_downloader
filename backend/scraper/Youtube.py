@@ -54,8 +54,9 @@ class YoutubeVideo:
             'no_warnings': True,
             'outtmpl': f'{download_folder}/%(title)s.%(ext)s',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            }
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+            },
+            'cookiesfrombrowser': ('chrome', 'edge', 'firefox'), # Try all common browsers
         }
         if cookies_file and os.path.exists(cookies_file):
             self.ydl_opts['cookiefile'] = cookies_file

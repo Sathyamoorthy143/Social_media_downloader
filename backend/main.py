@@ -86,13 +86,21 @@ async def video_info():
     #   return jsonify({"error": "Invalid YouTube URL."}), 400
     
     try:
-      if 'instagram.com' in url:
-          from instagram_handler import get_instagram_info
-          video_info = await asyncio.to_thread(get_instagram_info, url)
-          if video_info:
+      if 'pinterest.com' in url:
+          from pinterest_handler import download_pinterest
+          video_info = await asyncio.to_thread(download_pinterest, url)
+          if video_info and "error" not in video_info:
               return jsonify(video_info), 200
           else:
-              return jsonify({"error": "Failed to fetch Instagram info"}), 500
+              return jsonify({"error": video_info.get("error", "Failed to fetch Pinterest info")}), 500
+
+      if 'instagram.com' in url:
+          from instagram_handler import download_instagram
+          video_info = await asyncio.to_thread(download_instagram, url)
+          if video_info and "error" not in video_info:
+              return jsonify(video_info), 200
+          else:
+              return jsonify({"error": video_info.get("error", "Failed to fetch Instagram info")}), 500
 
       # Use the get_video method (aliased as search in Youtube class for compatibility if needed, but better to use get_video)
       # Wait, main.py originally called youtube.search(url) which returned a YoutubeVideo object
