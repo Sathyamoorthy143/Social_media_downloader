@@ -44,7 +44,7 @@ class Youtube:
         }
 
 class YoutubeVideo:
-    def __init__(self, url, download_folder, proxies):
+    def __init__(self, url, download_folder, proxies=None, cookies_file=None):
         self.url = url
         self.download_folder = download_folder
         self.proxies = proxies
@@ -54,6 +54,8 @@ class YoutubeVideo:
             'no_warnings': True,
             'outtmpl': f'{download_folder}/%(title)s.%(ext)s',
         }
+        if cookies_file and os.path.exists(cookies_file):
+            self.ydl_opts['cookiefile'] = cookies_file
         # Add proxy if needed
         # if proxies: self.ydl_opts['proxy'] = proxies
 
