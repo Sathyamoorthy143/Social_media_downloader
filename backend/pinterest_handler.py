@@ -102,20 +102,146 @@ def download_pinterest(url):
         # Fallback to YoutubeVideo class (yt-dlp)
         from scraper.Youtube import YoutubeVideo
         yt_video = YoutubeVideo(url, TEMP_DIR)
-        info = yt_video.dict()
-        filename = yt_video.download()
-        
-        if filename and os.path.exists(filename):
-            return {
-                "title": info.get('title', 'Pinterest Video'),
-                "url": url,
-                "download_url": f"/api/temp_file/{os.path.basename(filename)}",
-                "thumbnail": info.get('thumbnail_url', ''),
-                "duration": info.get('length')
-            }
-        else:
-             return {"error": "Download failed or file not found."}
+        try:
+            info = yt_video.dict()
+            filename = yt_video.download()
+            
+            if filename and os.path.exists(filename):
+                return {
+                    "title": info.get('title', 'Pinterest Video'),
+                    "url": url,
+                    "download_url": f"/api/temp_file/{os.path.basename(filename)}",
+                    "thumbnail": info.get('thumbnail_url', ''),
+                    "duration": info.get('length')
+                }
+        except Exception as e:
+            logger.warning(f"yt-dlp failed: {e}")
+
+        # Final fallback: Playwright
+        logger.info("Attempting Playwright fallback...")
+        return download_with_playwright(url)
 
     except Exception as e:
         logger.error(f"Error downloading pinterest: {e}")
         return {"error": str(e)}
+
+def download_with_playwright(url):
+    try:
+        from playwright.sync_api import sync_playwright
+        import time
+        import json
+
+        with sync_playwright() as p:
+            # Launch with mobile user agent
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                user_agent='Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36'
+            )
+            page = context.new_page()
+            
+            try:
+                page.goto(url, timeout=60000)
+                # Wait for content to load
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=30000)
+                    time.sleep(5) # Allow JS to execute
+                except:
+                    pass
+
+                # 1. Try to find video URL in window props
+                video_url = None
+                try:
+                    props_str = page.evaluate("() => JSON.stringify(window.__PWS_INITIAL_PROPS__)")
+                    if props_str:
+                        props = json.loads(props_str)
+                        # Reuse extraction logic if possible, or simple traversal
+                        # For now, let's use a simplified traversal or the helper if we move it out
+                        # Since helper is inside download_pinterest, we duplicate logic or move it.
+                        # Let's try to find video in the props structure manually for now
+                        pass # TODO: Implement deep search if needed, but let's rely on DOM first
+                except:
+                    pass
+
+                # 2. Try video tag
+                if not video_url:
+                    try:
+                        video_url = page.evaluate("() => { const v = document.querySelector('video'); return v ? v.src : null; }")
+                    except:
+                        pass
+
+                # 3. Try image if no video
+                image_url = None
+                if not video_url:
+                    # Try JSON-LD first
+                    try:
+                        image_url = page.evaluate("""() => {
+                            const script = document.querySelector('script[type="application/ld+json"]');
+                            if (script) {
+                                const data = JSON.parse(script.innerText);
+                                return data.image || (data.sharedContent && data.sharedContent.image);
+                            }
+                            return null;
+                        }""")
+                    except Exception as e:
+                        print(f"JSON-LD extraction failed: {e}")
+
+                    # Try og:image if JSON-LD failed
+                    if not image_url:
+                        try:
+                            image_url = page.evaluate("() => { const meta = document.querySelector('meta[property=\"og:image\"]'); return meta ? meta.content : null; }")
+                        except Exception as e:
+                            print(f"og:image extraction failed: {e}")
+
+                if video_url:
+                    # Download video
+                    if video_url.startswith('blob:'):
+                        # Blob handling is complex, skip for now or try to fetch
+                        return {"error": "Blob video URL found, cannot download directly."}
+                    
+                    filename = f"pinterest_video_{int(time.time())}.mp4"
+                    file_path = os.path.join(TEMP_DIR, filename)
+                    
+                    # Use requests to download
+                    import requests
+                    with requests.get(video_url, stream=True) as r:
+                        r.raise_for_status()
+                        with open(file_path, 'wb') as f:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                                
+                    return {
+                        "title": "Pinterest Video (Playwright)",
+                        "url": url,
+                        "download_url": f"/api/temp_file/{filename}",
+                        "thumbnail": "",
+                        "duration": "0:00"
+                    }
+
+                elif image_url:
+                    # Download image
+                    filename = f"pinterest_image_{int(time.time())}.jpg"
+                    file_path = os.path.join(TEMP_DIR, filename)
+                    
+                    import requests
+                    with requests.get(image_url, stream=True) as r:
+                        r.raise_for_status()
+                        with open(file_path, 'wb') as f:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                                
+                    return {
+                        "title": "Pinterest Image (Playwright)",
+                        "url": url,
+                        "download_url": f"/api/temp_file/{filename}",
+                        "thumbnail": image_url,
+                        "duration": "0:00"
+                    }
+                else:
+                    return {"error": "No video or image found with Playwright."}
+
+            finally:
+                browser.close()
+
+    except Exception as e:
+        logger.error(f"Playwright fallback failed: {e}")
+        return {"error": f"Playwright failed: {str(e)}"}
