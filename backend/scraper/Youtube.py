@@ -102,8 +102,8 @@ class YoutubeVideo:
                 'preferredquality': '192',
             }]
         else:
-            # Force MP4 format
-            opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+            # Force MP4 format, but allow fallbacks
+            opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best/bestvideo+bestaudio'
             opts['merge_output_format'] = 'mp4'
         
         with YoutubeDL(opts) as ydl:
