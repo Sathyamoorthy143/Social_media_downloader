@@ -100,8 +100,11 @@ class YoutubeVideo:
 
         if cookies_file and os.path.exists(cookies_file):
             self.ydl_opts['cookiefile'] = cookies_file
-        # Add proxy if needed
-        # if proxies: self.ydl_opts['proxy'] = proxies
+            
+        # Add OAuth2 fallback if cookies fail
+        # This will print a code to logs that you can use to authenticate
+        self.ydl_opts['username'] = 'oauth2'
+        self.ydl_opts['password'] = ''
 
     @property
     def title(self):
