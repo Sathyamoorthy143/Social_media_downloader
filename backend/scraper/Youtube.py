@@ -67,6 +67,16 @@ class YoutubeVideo:
                 }
             }
         }
+        
+        # Check for cookies file in current directory or backend directory
+        cookies_path = 'youtube_cookies.txt'
+        if not os.path.exists(cookies_path):
+            cookies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'youtube_cookies.txt')
+            
+        if os.path.exists(cookies_path):
+            print(f"Using cookies from: {cookies_path}")
+            self.ydl_opts['cookiefile'] = cookies_path
+            
         if use_browser_cookies:
              self.ydl_opts['cookiesfrombrowser'] = ('chrome', 'edge', 'firefox') # Try all common browsers
 
