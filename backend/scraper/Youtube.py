@@ -75,19 +75,24 @@ class YoutubeVideo:
         # Method 1: Check environment variable (Best for Render)
         if os.environ.get('YOUTUBE_COOKIES'):
             try:
+                print("Found YOUTUBE_COOKIES env var, writing to file...")
                 # Write env var content to a temp file
                 with open(cookies_path, 'w') as f:
                     f.write(os.environ.get('YOUTUBE_COOKIES'))
-                print("Created cookies file from environment variable")
+                print(f"Created cookies file at: {os.path.abspath(cookies_path)}")
+                self.ydl_opts['cookiefile'] = cookies_path
             except Exception as e:
                 print(f"Error writing cookies from env: {e}")
 
-        # Method 2: Check for existing file
-        if not os.path.exists(cookies_path):
+        # Method 2: Check for existing file (only if env var didn't work)
+        elif os.path.exists(cookies_path):
+            print(f"Using existing cookies file from: {os.path.abspath(cookies_path)}")
+            self.ydl_opts['cookiefile'] = cookies_path
+        
+        # Method 3: Check parent directory
+        elif os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'youtube_cookies.txt')):
             cookies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'youtube_cookies.txt')
-            
-        if os.path.exists(cookies_path):
-            print(f"Using cookies from: {cookies_path}")
+            print(f"Using parent directory cookies from: {cookies_path}")
             self.ydl_opts['cookiefile'] = cookies_path
             
         if use_browser_cookies:
