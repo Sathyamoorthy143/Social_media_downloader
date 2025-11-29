@@ -1,3 +1,13 @@
+import logging
+import asyncio
+import os
+from yt_dlp import YoutubeDL
+
+logger = logging.getLogger(__name__)
+
+class Youtube:
+    def __init__(self, download_folder, proxies=None):
+        self.download_folder = download_folder
         self.proxies = proxies
 
     async def get_video(self, url):
