@@ -31,8 +31,8 @@ setup_logging()
 logger= logging.getLogger(__name__)
 
 app = Quart(__name__)
-# Enable CORS for production deployment
-app = cors(app, allow_origin="https://social-media-downloader.vercel.app")  # In production, replace * with your Vercel domain
+# Enable CORS for production deployment - Allow all for testing
+app = cors(app, allow_origin="*")
 youtube = Youtube(download_folder=TEMP_DIR, proxies=get_proxies())
 
 if AUTH:
