@@ -70,6 +70,18 @@ class YoutubeVideo:
         
         # Check for cookies file in current directory or backend directory
         cookies_path = 'youtube_cookies.txt'
+        
+        # Method 1: Check environment variable (Best for Render)
+        if os.environ.get('YOUTUBE_COOKIES'):
+            try:
+                # Write env var content to a temp file
+                with open(cookies_path, 'w') as f:
+                    f.write(os.environ.get('YOUTUBE_COOKIES'))
+                print("Created cookies file from environment variable")
+            except Exception as e:
+                print(f"Error writing cookies from env: {e}")
+
+        # Method 2: Check for existing file
         if not os.path.exists(cookies_path):
             cookies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'youtube_cookies.txt')
             
